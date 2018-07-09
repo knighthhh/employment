@@ -5,6 +5,7 @@ MONGO_TABLE_USER = 'weibo_user'
 MONGO_PORT = 27017
 MONGO_PASSWORD = None
 
+
 #mysql配置
 MYSQL_HOST = 'localhost'
 MYSQL_DB = 'employment'

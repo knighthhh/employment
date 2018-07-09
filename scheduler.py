@@ -50,7 +50,7 @@ class Scheduler(object):
             shi_id = res[1]
             qu_id = res[2]
             url = QU_URL.format(shi_id='c'+shi_id, qu_id=qu_id)
-            print(url)
+            print(url) 
             html = self.download.get_html(url)
             if html is not None and html.status_code == 200:
                 html = HTML(html.text)
