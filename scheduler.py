@@ -96,12 +96,13 @@ class Scheduler(object):
                     if html is not None and html.status_code == 200:
                         html = HTML(html.text)
 
-                        xpath_list = html.xpath('//div[@class="job-list"]/ul/li//div[@class="info-primary"]//h3/a/@href')
-                        for li in xpath_list:
+                        xpath_url_list = html.xpath('//div[@class="job-list"]/ul/li//div[@class="info-primary"]//h3/a/@href')
+                        for li in xpath_url_list:
                             detail_url_list.append(config.HOST_URL + li)
 
-                        self.get_detail(detail_url_list)
+                        results = self.get_detail(detail_url_list)
 
+                        #翻页
 
                     else:
                         print('该url无数据')
@@ -141,11 +142,12 @@ class Scheduler(object):
                 price = html.xpath('string(//div[@class="info-primary"]//span[@class="badge"])')
                 posterName = html.xpath('string(//h2)')
                 posterId = None
-                posterUrl = html.xpath('//div[@class="detail-figure"]/img/@src')
-                content = html.xpath('string(//div[@class="job-sec"]/div[@class="text"])')
+                posterUrl = html.xpath('string(//div[@class="detail-figure"]/img/@src)')
+                content = html.xpath('string(//div[@class="job-sec"]/div[@class="text"])').strip()
+
                 try:
-                    company_text = html.xpath('//a[@ka="job-cominfo"]/@href')
-                    companyID = re.match('/gongsi/(.*?)\.html',company_text)
+                    company_text = html.xpath('string(//a[@ka="job-cominfo"]/@href)')
+                    companyID = re.match('/gongsi/(.*?)\.html', company_text).group(1)
                 except:
                     companyID = None
 
@@ -166,4 +168,6 @@ class Scheduler(object):
                     'companyID': companyID,
                 }
                 print(res_obj)
+                sql = "insert into positions(cid,title,url,publishDate,publishDateStr,city,jingyan,xueli,price,posterName,posterId,posterUrl,content,companyID) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" % (cid,title,url,publishDate,publishDateStr,city,jingyan,xueli,price,posterName,posterId,posterUrl,content,companyID) + "ON DUPLICATE KEY UPDATE title='%s', url='%s', publishDate='%s', publishDateStr='%s', content='%s'" %(title,url,publishDate,publishDateStr,content)
+                self.db.save(sql)
                 return res_obj
