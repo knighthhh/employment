@@ -52,7 +52,7 @@ class Scheduler(object):
             url = QU_URL.format(shi_id='c'+shi_id, qu_id=qu_id)
             print(url)
             html = self.download.get_html(url)
-            if html.status_code == 200 and html is not None:
+            if html is not None and html.status_code == 200:
                 html = HTML(html.text)
                 zhen_id_list = html.xpath('//dl[@class="condition-area show-condition-area"]/dd/a/@href')
                 zhen_name_list = html.xpath('//dl[@class="condition-area show-condition-area"]/dd/a/text()')
