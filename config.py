@@ -36,9 +36,7 @@ COOKIES_SWITCH = False
 ERROR_MAX = 5
 
 #初始URL配置
-#姚晨的微博主页
-START_URL = 'https://m.weibo.cn/u/1266321801?uid=1266321801&featurecode=20000320'
-START_ID = '1266321801'
+HOST_URL = 'https://www.zhipin.com'
 
 #讯代理配置
 IP_URL =''
