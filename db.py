@@ -1,5 +1,4 @@
 from config import *
-import pymongo
 import pymysql
 
 class MongoClient(object):
