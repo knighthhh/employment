@@ -6,6 +6,8 @@ from time import sleep
 import config
 import re
 import time
+import html as HT
+from lxml import etree
 from lxml.etree import HTML
 from download import Download
 from db import MongoClient, MysqlClient
@@ -87,7 +89,6 @@ class Scheduler(object):
                 pageToken = 1
                 #处理翻页问题
                 while flag:
-                    #self.next()
                     detail_url_list = []
                     url = POSITION_URL.format(pid=pid, zhen_id=zhen_id, zhiwei_id=zhiwei_id, pageToken=pageToken)
                     print(url)
@@ -96,13 +97,34 @@ class Scheduler(object):
                     if html is not None and html.status_code == 200:
                         html = HTML(html.text)
 
-                        xpath_url_list = html.xpath('//div[@class="job-list"]/ul/li//div[@class="info-primary"]//h3/a/@href')
-                        for li in xpath_url_list:
-                            detail_url_list.append(config.HOST_URL + li)
+                        #判断是否是当天发布，是的话请求详情页
+                        li_xpath = html.xpath('//div[@class="job-list"]/ul/li')
+                        for li in li_xpath:
+                            content = etree.tostring(li)
+                            content = HT.unescape(content.decode())
+                            content = HTML(content)
+                            li_time = content.xpath('string(//div[@class="info-publis"]/p)')
+                            href_url = content.xpath('string(//div[@class="info-primary"]//h3/a/@href)')
+                            try:
+                                last_str = li_time.split('发布于')[1]
+                                minute = last_str.split(':')[1]
+                                if minute:
+
+                                    detail_url_list.append(config.HOST_URL + href_url)
+                            except:
+                                print('该URL发布日期小于当天：' + config.HOST_URL + href_url)
 
                         results = self.get_detail(detail_url_list)
 
-                        #翻页
+                        #判断是否翻页
+                        try:
+                            last_li = html.xpath('string(//div[@class="job-list"]/ul/li[last()]//div[@class="info-publis"]/p)')
+                            last_str = last_li.split('发布于')[1]
+                            minute = last_str.split(':')[1]
+                            if minute:
+                                pageToken = str(int(pageToken) + 1)
+                        except:
+                            flag = False
 
                     else:
                         print('该url无数据')
@@ -150,6 +172,15 @@ class Scheduler(object):
                     companyID = re.match('/gongsi/(.*?)\.html', company_text).group(1)
                 except:
                     companyID = None
+                createDate = int(time.time())
+
+                #判断是否是当天发布
+                temp_time = time.localtime(int(time.time()))
+                now_DateStr = time.strftime("%Y-%m-%d", temp_time)
+                lt = time.strptime(now_DateStr, "%Y-%m-%d")
+                now_timestamp = int(time.mktime(lt))
+                if publishDate == None or publishDate < now_timestamp or publishDate >= (now_timestamp + 86400):
+                    continue
 
                 res_obj = {
                     'cid': cid,
@@ -166,8 +197,9 @@ class Scheduler(object):
                     'posterUrl': posterUrl,
                     'content': content,
                     'companyID': companyID,
+                    'createDate': createDate
                 }
                 print(res_obj)
-                sql = "insert into positions(cid,title,url,publishDate,publishDateStr,city,jingyan,xueli,price,posterName,posterId,posterUrl,content,companyID) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" % (cid,title,url,publishDate,publishDateStr,city,jingyan,xueli,price,posterName,posterId,posterUrl,content,companyID) + "ON DUPLICATE KEY UPDATE title='%s', url='%s', publishDate='%s', publishDateStr='%s', content='%s'" %(title,url,publishDate,publishDateStr,content)
+                sql = "insert into positions(cid,title,url,publishDate,publishDateStr,city,jingyan,xueli,price,posterName,posterId,posterUrl,content,companyID,createDate) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" % (cid,title,url,publishDate,publishDateStr,city,jingyan,xueli,price,posterName,posterId,posterUrl,content,companyID,createDate) + "ON DUPLICATE KEY UPDATE title='%s', url='%s', publishDate='%s', publishDateStr='%s', content='%s', createDate='%s'" %(title,url,publishDate,publishDateStr,content,createDate)
                 self.db.save(sql)
                 return res_obj
