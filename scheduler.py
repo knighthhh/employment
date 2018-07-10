@@ -2,15 +2,16 @@ import datetime
 import json
 import threading
 from time import sleep
-
+import multiprocessing
 import config
 import re
 import time
+import redis
 import html as HT
 from lxml import etree
 from lxml.etree import HTML
 from download import Download
-from db import MongoClient, MysqlClient
+from db import MongoClient, MysqlClient, RedisClient
 
 SHI_URL = 'https://www.zhipin.com/{shi_id}/'
 QU_URL = 'https://www.zhipin.com/{shi_id}/{qu_id}/?ka=sel-business-1'
@@ -20,11 +21,23 @@ class Scheduler(object):
     def __init__(self):
         self.download = Download()
         self.db = MysqlClient()
+        self.redisClient = RedisClient()
 
     def run(self):
         #self.get_qu()
         #self.get_zhen()
-        self.get_position()
+        self.push_url_to_redis()
+        # self.get_position()
+        flag = True
+        while flag:
+            redis_len = self.redisClient.llen('employment')
+            print('redis队列长度：' + str(redis_len))
+            if redis_len > 0:
+                for i in range(10):
+                    p = multiprocessing.Process(target=self.get_position)
+                    p.start()
+            else:
+                flag = False
 
     def get_qu(self):
         sql = 'select * from shi'
@@ -72,62 +85,51 @@ class Scheduler(object):
                 print('该url无数据')
 
     def get_position(self):
-        zhiwei_list = []
-        zhiwei_sql = 'select * from zhiwei'
-        zhiwei_results = self.db.find_all(zhiwei_sql)
-        for zhiwei in zhiwei_results:
-            zhiwei_list.append(zhiwei[2])
+        redis_results = self.redisClient.pop('employment')
+        if redis_results:
+            flag = True
+            pageToken = 1
+            #处理翻页问题
+            while flag:
+                detail_url_list = []
+                url = redis_results[1]
+                print(url)
+                html = self.download.get_html(url)
 
-        zhen_sql = 'select * from zhen'
-        zhen_results = self.db.find_all(zhen_sql)
+                if html is not None and html.status_code == 200:
+                    html = HTML(html.text)
 
-        for res in zhen_results:
-            pid = res[1]
-            zhen_id = res[2]
-            for zhiwei_id in zhiwei_list:
-                flag = True
-                pageToken = 1
-                #处理翻页问题
-                while flag:
-                    detail_url_list = []
-                    url = POSITION_URL.format(pid=pid, zhen_id=zhen_id, zhiwei_id=zhiwei_id, pageToken=pageToken)
-                    print(url)
-                    html = self.download.get_html(url)
-
-                    if html is not None and html.status_code == 200:
-                        html = HTML(html.text)
-
-                        #判断是否是当天发布，是的话请求详情页
-                        li_xpath = html.xpath('//div[@class="job-list"]/ul/li')
-                        for li in li_xpath:
-                            content = etree.tostring(li)
-                            content = HT.unescape(content.decode())
-                            content = HTML(content)
-                            li_time = content.xpath('string(//div[@class="info-publis"]/p)')
-                            href_url = content.xpath('string(//div[@class="info-primary"]//h3/a/@href)')
-                            try:
-                                last_str = li_time.split('发布于')[1]
-                                minute = last_str.split(':')[1]
-                                if minute:
-
-                                    detail_url_list.append(config.HOST_URL + href_url)
-                            except:
-                                print('该URL发布日期小于当天：' + config.HOST_URL + href_url)
-
-                        results = self.get_detail(detail_url_list)
-
-                        #判断是否翻页
+                    #判断是否是当天发布，是的话请求详情页
+                    li_xpath = html.xpath('//div[@class="job-list"]/ul/li')
+                    for li in li_xpath:
+                        content = etree.tostring(li)
+                        content = HT.unescape(content.decode())
+                        content = HTML(content)
+                        li_time = content.xpath('string(//div[@class="info-publis"]/p)')
+                        href_url = content.xpath('string(//div[@class="info-primary"]//h3/a/@href)')
                         try:
-                            last_li = html.xpath('string(//div[@class="job-list"]/ul/li[last()]//div[@class="info-publis"]/p)')
-                            last_str = last_li.split('发布于')[1]
+                            last_str = li_time.split('发布于')[1]
                             minute = last_str.split(':')[1]
                             if minute:
-                                pageToken = str(int(pageToken) + 1)
-                        except:
-                            flag = False
 
-                    else:
-                        print('该url无数据')
+                                detail_url_list.append(config.HOST_URL + href_url)
+                        except:
+                            print('该URL发布日期小于当天：' + config.HOST_URL + href_url)
+
+                    results = self.get_detail(detail_url_list)
+
+                    #判断是否翻页
+                    try:
+                        last_li = html.xpath('string(//div[@class="job-list"]/ul/li[last()]//div[@class="info-publis"]/p)')
+                        last_str = last_li.split('发布于')[1]
+                        minute = last_str.split(':')[1]
+                        if minute:
+                            pageToken = str(int(pageToken) + 1)
+                    except:
+                        flag = False
+
+                else:
+                    print('该url无数据')
 
     def get_detail(self, detail_url_list):
         for url in detail_url_list:
@@ -203,3 +205,20 @@ class Scheduler(object):
                 sql = "insert into positions(cid,title,url,publishDate,publishDateStr,city,jingyan,xueli,price,posterName,posterId,posterUrl,content,companyID,createDate) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" % (cid,title,url,publishDate,publishDateStr,city,jingyan,xueli,price,posterName,posterId,posterUrl,content,companyID,createDate) + "ON DUPLICATE KEY UPDATE title='%s', url='%s', publishDate='%s', publishDateStr='%s', content='%s', createDate='%s'" %(title,url,publishDate,publishDateStr,content,createDate)
                 self.db.save(sql)
                 return res_obj
+
+    def push_url_to_redis(self):
+        zhiwei_list = []
+        zhiwei_sql = 'select * from zhiwei'
+        zhiwei_results = self.db.find_all(zhiwei_sql)
+        for zhiwei in zhiwei_results:
+            zhiwei_list.append(zhiwei[2])
+
+        zhen_sql = 'select * from zhen'
+        zhen_results = self.db.find_all(zhen_sql)
+
+        for res in zhen_results:
+            pid = res[1]
+            zhen_id = res[2]
+            for zhiwei_id in zhiwei_list:
+                url = POSITION_URL.format(pid=pid, zhen_id=zhen_id, zhiwei_id=zhiwei_id, pageToken='1')
+                self.redisClient.push('employment',url)

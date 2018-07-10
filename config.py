@@ -5,6 +5,11 @@ MONGO_TABLE_USER = 'weibo_user'
 MONGO_PORT = 27017
 MONGO_PASSWORD = None
 
+#mongodb配置
+REDIS_HOST = 'localhost'
+REDIS_PORT = 6379
+REDIS_PASSWORD = ''
+REDIS_EMPLOYMENT = 'employment'
 
 #mysql配置
 MYSQL_HOST = 'localhost'

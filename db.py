@@ -1,5 +1,6 @@
 from config import *
 import pymysql
+import redis
 
 class MongoClient(object):
     def __init__(self, host=MONGO_URL, port=MONGO_PORT, password=MONGO_PASSWORD):
@@ -76,6 +77,33 @@ class MysqlClient(object):
             return results
         except:
             print("Error: unable to fetch data")
+            return None
+class RedisClient(object):
+    def __init__(self, host=REDIS_HOST, port=REDIS_PORT):
+        self.client = redis.Redis(host=host, port=port)
+
+    def push(self, redis_key, redis_res):
+        try:
+            print('pushing...' + str(redis_key) + '...' + str(redis_res))
+            self.client.rpush(redis_key, redis_res)
+        except:
+            print('push失败', + str(redis_res))
+            return None
+
+    def pop(self, redis_key):
+        try:
+            results = self.client.blpop(redis_key, timeout=5)
+            return results
+        except:
+            print("pop Error: unable to fetch data")
+            return None
+
+    def llen(self, redis_key):
+        try:
+            results = self.client.llen(redis_key)
+            return results
+        except:
+            print("llen Error: unable to fetch data")
             return None
 
 if __name__ == '__main__':
