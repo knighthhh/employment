@@ -11,7 +11,7 @@
  Target Server Version : 50713
  File Encoding         : 65001
 
- Date: 09/07/2018 19:52:19
+ Date: 10/07/2018 15:01:08
 */
 
 SET NAMES utf8mb4;
@@ -35,11 +35,20 @@ CREATE TABLE `positions` (
   `posterName` varchar(255) DEFAULT NULL,
   `posterId` varchar(255) DEFAULT NULL,
   `posterUrl` varchar(255) DEFAULT NULL,
-  `content` varchar(255) DEFAULT NULL,
+  `content` longtext,
   `companyID` varchar(255) DEFAULT NULL,
+  `createDate` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `cid` (`cid`)
-) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=utf8;
+) ENGINE=MyISAM AUTO_INCREMENT=10 DEFAULT CHARSET=utf8;
+
+-- ----------------------------
+-- Records of positions
+-- ----------------------------
+BEGIN;
+INSERT INTO `positions` VALUES (8, '1e12038e44426b9f1XZy3Ni8EVQ~', '文员', 'https://www.zhipin.com/job_detail/1e12038e44426b9f1XZy3Ni8EVQ~.html', '1531187160', '2018-07-10 09:46', '北京', '5-10年', '大专', '5K-6K', '金宏彦', 'None', 'https://img.bosszhipin.com/beijin/mcs/useravatar/20180710/47367bbf1fbb379d2527deb6c90860cbcfcd208495d565ef66e7dff9f98764da_s.jpg', '岗位职责：1、写字楼物业办公室招商及日常事务；2、报表的收编以及整理，以便更好的贯彻和落实工作；3、确保办公区的整洁有序；4、完成部门经理交代的其它工作。任职资格：1.女士；2.熟悉办公室行政管理知识及工作流程，具备基本商务信函写作能力及较强的书面和口头表达能力；3.熟悉公文写作格式，熟练运用OFFICE等办公软件；4.工作仔细认真、责任心强、为人正直。', '885d0637d42704a91XZz2dW9Fg~~', '1531192462');
+INSERT INTO `positions` VALUES (9, '2c7c14d5a361009d1XZ809m8FFA~', '销售专员', 'https://www.zhipin.com/job_detail/2c7c14d5a361009d1XZ809m8FFA~.html', '1531189140', '2018-07-10 10:19', '北京', '经验不限', '不限', '4K-6K', '董洁', 'None', 'https://img.bosszhipin.com/beijin/mcs/useravatar/20170210/f450a80a1af93aa2ae998655cffc0c218c7dd922ad47494fc02c388e12c00eac_s.jpg', '岗位职责：1、负责公司业务领域的知识产权销售；2、负责公司业务的开发，如：商标，计算机软件著作权，软件测试报告等。3、负责维护好公司的老客户，定期进行回访4、负责公司业务新订单的流程跟进，及时对项目人员进行汇报。5、负责客户的专利、商标、著作权等申请；6、负责审核知识产权相关文件；任职资格：1、本科及以上学历，经济、法律等相关专业；（接受应届毕业生皆可）2、具有一年以上销售经验或者商标代理行业工作者优先；3、熟悉法律等相关知识，熟悉专利，著作权，高企认定的申请流程；4、熟练使用电脑等办公软件，工作责任心强；5、思维严谨，做事认真，能承受很强的工作压力；6、具有较强的沟通能力，有良好的团队合作精神；7、具有较强的语言沟通能力和外部交际能力，反应敏捷。工作时间：早九晚六，周末双休，法定节假日休息。', '97c324fb25dc0c8d1XZ82tm9FQ~~', '1531194706');
+COMMIT;
 
 -- ----------------------------
 -- Table structure for qu
