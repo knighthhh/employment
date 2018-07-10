@@ -78,6 +78,16 @@ class MysqlClient(object):
         except:
             print("Error: unable to fetch data")
             return None
+
+    def find_one(self, sql):
+        try:
+            self.cursor.execute(sql)
+            results = self.cursor.fetchone()
+            return results
+        except:
+            print("Error: unable to fetch data")
+            return None
+
 class RedisClient(object):
     def __init__(self, host=REDIS_HOST, port=REDIS_PORT):
         self.client = redis.Redis(host=host, port=port)
