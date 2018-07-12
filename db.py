@@ -85,7 +85,7 @@ class MysqlClient(object):
             results = self.cursor.fetchone()
             return results
         except:
-            print("Error: unable to fetch data")
+            print("Error: unable to find_one data")
             return None
 
 class RedisClient(object):
