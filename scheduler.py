@@ -91,7 +91,7 @@ class Scheduler(object):
                 detail_url_list = []
                 url = json_obj['url']
                 pre_page = re.search('\/\?page=(.*?)&', url).group(1)
-                if int(pre_page) > 10:
+                if int(pageToken) > 10:
                     break
                 url = url.replace('page='+pre_page+'&sort=2&ka=page-'+pre_page, 'page=' + str(pageToken) + '&sort=2&ka=page-' + str(pageToken))
                 cityId = json_obj['cityId']
@@ -124,6 +124,8 @@ class Scheduler(object):
                                         #先把cid插入，避免重复抓取
                                         sql = "insert into positions(cid) values ('%s')" %(cid)
                                         self.db.save(sql)
+                                        detail_url_list.append(config.HOST_URL + href_url)
+                                    elif find_one_res[2] is None:
                                         detail_url_list.append(config.HOST_URL + href_url)
                                     else:
                                         print('数据库存在该记录：' + str(cid))
@@ -227,7 +229,6 @@ class Scheduler(object):
                       + "ON DUPLICATE KEY UPDATE title='%s', url='%s', publishDate='%s', publishDateStr='%s', city='%s', jingyan='%s', xueli='%s', price='%s', posterName='%s', posterId='%s', posterUrl='%s', content='%s', companyID='%s', createDate='%s',cityId='%s', zhiweiId='%s'" \
                       %(title,url,publishDate,publishDateStr,city,jingyan,xueli,price,posterName,posterId,posterUrl,content,companyID,createDate,cityId, zhiweiId)
                 self.db.save(sql)
-                return res_obj
             else:
                 print('请求详情页失败：' + str(url))
 
